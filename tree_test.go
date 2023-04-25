@@ -4,13 +4,16 @@
 
 package nradix
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestTree(t *testing.T) {
-	tr := NewTree(0)
-	if tr == nil || tr.root == nil {
+	tr := New[int](0)
+	if tr == nil {
 		t.Error("Did not create tree properly")
 	}
+
 	err := tr.AddCIDR("1.2.3.0/25", 1)
 	if err != nil {
 		t.Error(err)
@@ -21,7 +24,7 @@ func TestTree(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if inf.(int) != 1 {
+	if inf != 1 {
 		t.Errorf("Wrong value, expected 1, got %v", inf)
 	}
 
@@ -30,14 +33,14 @@ func TestTree(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if inf.(int) != 1 {
+	if inf != 1 {
 		t.Errorf("Wrong value, expected 1, got %v", inf)
 	}
 	inf, err = tr.FindCIDR("1.2.3.60")
 	if err != nil {
 		t.Error(err)
 	}
-	if inf.(int) != 1 {
+	if inf != 1 {
 		t.Errorf("Wrong value, expected 1, got %v", inf)
 	}
 
@@ -46,14 +49,14 @@ func TestTree(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if inf != nil {
+	if inf != zero[int]() {
 		t.Errorf("Wrong value, expected nil, got %v", inf)
 	}
 	inf, err = tr.FindCIDR("1.2.3.160")
 	if err != nil {
 		t.Error(err)
 	}
-	if inf != nil {
+	if inf != zero[int]() {
 		t.Errorf("Wrong value, expected nil, got %v", inf)
 	}
 
@@ -61,7 +64,7 @@ func TestTree(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if inf != nil {
+	if inf != zero[int]() {
 		t.Errorf("Wrong value, expected nil, got %v", inf)
 	}
 
@@ -70,7 +73,7 @@ func TestTree(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if inf != nil {
+	if inf != zero[int]() {
 		t.Errorf("Wrong value, expected nil, got %v", inf)
 	}
 
@@ -83,7 +86,7 @@ func TestTree(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if inf.(int) != 2 {
+	if inf != 2 {
 		t.Errorf("Wrong value, expected 2, got %v", inf)
 	}
 
@@ -91,7 +94,7 @@ func TestTree(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if inf.(int) != 2 {
+	if inf != 2 {
 		t.Errorf("Wrong value, expected 2, got %v", inf)
 	}
 
@@ -100,7 +103,7 @@ func TestTree(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if inf.(int) != 1 {
+	if inf != 1 {
 		t.Errorf("Wrong value, expected 1, got %v", inf)
 	}
 
@@ -115,7 +118,7 @@ func TestTree(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if inf.(int) != 2 {
+	if inf != 2 {
 		t.Errorf("Wrong value, expected 2, got %v", inf)
 	}
 
@@ -136,7 +139,7 @@ func TestTree(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if inf.(int) != 1 {
+	if inf != 1 {
 		t.Errorf("Wrong value, expected 1, got %v", inf)
 	}
 
@@ -145,7 +148,7 @@ func TestTree(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if inf != nil {
+	if inf != zero[int]() {
 		t.Errorf("Wrong value, expected nil, got %v", inf)
 	}
 
@@ -158,7 +161,7 @@ func TestTree(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if inf.(int) != 2 {
+	if inf != 2 {
 		t.Errorf("Wrong value, expected 2, got %v", inf)
 	}
 
@@ -172,7 +175,7 @@ func TestTree(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if inf != nil {
+	if inf != zero[int]() {
 		t.Errorf("Wrong value, expected nil, got %v", inf)
 	}
 	// should be no value for internal
@@ -180,14 +183,14 @@ func TestTree(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if inf != nil {
+	if inf != zero[int]() {
 		t.Errorf("Wrong value, expected nil, got %v", inf)
 	}
 }
 
 func TestSet(t *testing.T) {
-	tr := NewTree(0)
-	if tr == nil || tr.root == nil {
+	tr := New[int](0)
+	if tr == nil {
 		t.Error("Did not create tree properly")
 	}
 
@@ -196,7 +199,7 @@ func TestSet(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if inf.(int) != 1 {
+	if inf != 1 {
 		t.Errorf("Wrong value, expected 1, got %v", inf)
 	}
 
@@ -205,14 +208,14 @@ func TestSet(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if inf.(int) != 2 {
+	if inf != 2 {
 		t.Errorf("Wrong value, expected 2, got %v", inf)
 	}
 	inf, err = tr.FindCIDR("1.1.1.0/24")
 	if err != nil {
 		t.Error(err)
 	}
-	if inf.(int) != 1 {
+	if inf != 1 {
 		t.Errorf("Wrong value, expected 1, got %v", inf)
 	}
 
@@ -231,14 +234,14 @@ func TestSet(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if inf.(int) != 2 {
+	if inf != 2 {
 		t.Errorf("Wrong value, expected 2, got %v", inf)
 	}
 	inf, err = tr.FindCIDR("1.1.1.0/24")
 	if err != nil {
 		t.Error(err)
 	}
-	if inf.(int) != 3 {
+	if inf != 3 {
 		t.Errorf("Wrong value, expected 3, got %v", inf)
 	}
 
@@ -251,21 +254,21 @@ func TestSet(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if inf.(int) != 4 {
+	if inf != 4 {
 		t.Errorf("Wrong value, expected 4, got %v", inf)
 	}
 	inf, err = tr.FindCIDR("1.1.1.0/24")
 	if err != nil {
 		t.Error(err)
 	}
-	if inf.(int) != 3 {
+	if inf != 3 {
 		t.Errorf("Wrong value, expected 3, got %v", inf)
 	}
 }
 
 func TestRegression(t *testing.T) {
-	tr := NewTree(0)
-	if tr == nil || tr.root == nil {
+	tr := New[int](0)
+	if tr == nil {
 		t.Error("Did not create tree properly")
 	}
 
@@ -278,14 +281,14 @@ func TestRegression(t *testing.T) {
 	inf, err := tr.FindCIDR("1.1.1.128")
 	if err != nil {
 		t.Error(err)
-	} else if inf != nil {
+	} else if inf != zero[int]() {
 		t.Errorf("Wrong value, expected nil, got %v", inf)
 	}
 }
 
 func TestTree6(t *testing.T) {
-	tr := NewTree(0)
-	if tr == nil || tr.root == nil {
+	tr := New[int](0)
+	if tr == nil {
 		t.Error("Did not create tree properly")
 	}
 	err := tr.AddCIDR("dead::0/16", 3)
@@ -298,7 +301,7 @@ func TestTree6(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if inf.(int) != 3 {
+	if inf != 3 {
 		t.Errorf("Wrong value, expected 3, got %v", inf)
 	}
 
@@ -307,7 +310,7 @@ func TestTree6(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if inf != nil {
+	if inf != zero[int]() {
 		t.Errorf("Wrong value, expected nil, got %v", inf)
 	}
 
@@ -322,7 +325,7 @@ func TestTree6(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if inf.(int) != 4 {
+	if inf != 4 {
 		t.Errorf("Wrong value, expected 4, got %v", inf)
 	}
 
@@ -331,15 +334,15 @@ func TestTree6(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if inf.(int) != 3 {
+	if inf != 3 {
 		t.Errorf("Wrong value, expected 3, got %v", inf)
 	}
 
 }
 
 func TestRegression6(t *testing.T) {
-	tr := NewTree(0)
-	if tr == nil || tr.root == nil {
+	tr := New[int](0)
+	if tr == nil {
 		t.Error("Did not create tree properly")
 	}
 	// in one of the implementations /128 addresses were causing panic...
@@ -349,7 +352,7 @@ func TestRegression6(t *testing.T) {
 	inf, err := tr.FindCIDR("2620:10f:d000:100::5/128")
 	if err != nil {
 		t.Errorf("Could not get /128 address from the tree, error: %s", err)
-	} else if inf.(int) != 12345 {
+	} else if inf != 12345 {
 		t.Errorf("Wrong value from /128 test, got %d, expected 12345", inf)
 	}
 }
