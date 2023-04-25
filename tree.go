@@ -6,8 +6,10 @@ package nradix
 
 import (
 	"bytes"
+	"encoding/binary"
 	"errors"
 	"net"
+	"net/netip"
 )
 
 type node[T comparable] struct {
@@ -37,7 +39,7 @@ var (
 // New creates tree and preallocates (if preallocate not zero) number of nodes that would be ready to fill with data.
 func New[T comparable](preallocate int) Tree[T] {
 	t := new(tree[T])
-	t.root = t.newnode()
+	t.root = t.newNode()
 	if preallocate == 0 {
 		return t
 	}
@@ -66,24 +68,53 @@ func New[T comparable](preallocate int) Tree[T] {
 	return t
 }
 
+func action(
+	cidr []byte,
+	call32 func(ip uint32, mask uint32) error,
+	call func(ip net.IP, mask net.IPMask) error) error {
+
+	ip, mask, err := parseCIDR(cidr)
+	if err != nil {
+		return err
+	}
+
+	if len(ip) == net.IPv4len {
+		ipInteger := binary.BigEndian.Uint32(ip)
+		maskInteger := binary.BigEndian.Uint32(mask)
+		return call32(ipInteger, maskInteger)
+	}
+	return call(ip, mask)
+}
+
+func actionWithValue[T comparable](
+	cidr []byte,
+	call32 func(ip uint32, mask uint32) (T, error),
+	call func(ip net.IP, mask net.IPMask) (T, error)) (T, error) {
+
+	ip, mask, err := parseCIDR(cidr)
+	if err != nil {
+		return zero[T](), err
+	}
+
+	if len(ip) == net.IPv4len {
+		ipInteger := binary.BigEndian.Uint32(ip)
+		maskInteger := binary.BigEndian.Uint32(mask)
+		return call32(ipInteger, maskInteger)
+	}
+	return call(ip, mask)
+}
+
 // AddCIDR adds value associated with IP/mask to the tree. Will return error for invalid CIDR or if value already exists.
 func (tree *tree[T]) AddCIDR(cidr string, val T) error {
 	return tree.AddCIDRb([]byte(cidr), val)
 }
 
 func (tree *tree[T]) AddCIDRb(cidr []byte, val T) error {
-	if bytes.IndexByte(cidr, '.') > 0 {
-		ip, mask, err := parsecidr4(cidr)
-		if err != nil {
-			return err
-		}
+	return action(cidr, func(ip uint32, mask uint32) error {
 		return tree.insert32(ip, mask, val, false)
-	}
-	ip, mask, err := parsecidr6(cidr)
-	if err != nil {
-		return err
-	}
-	return tree.insert(ip, mask, val, false)
+	}, func(ip net.IP, mask net.IPMask) error {
+		return tree.insert(ip, mask, val, false)
+	})
 }
 
 // AddCIDR adds value associated with IP/mask to the tree. Will return error for invalid CIDR or if value already exists.
@@ -92,18 +123,11 @@ func (tree *tree[T]) SetCIDR(cidr string, val T) error {
 }
 
 func (tree *tree[T]) SetCIDRb(cidr []byte, val T) error {
-	if bytes.IndexByte(cidr, '.') > 0 {
-		ip, mask, err := parsecidr4(cidr)
-		if err != nil {
-			return err
-		}
+	return action(cidr, func(ip uint32, mask uint32) error {
 		return tree.insert32(ip, mask, val, true)
-	}
-	ip, mask, err := parsecidr6(cidr)
-	if err != nil {
-		return err
-	}
-	return tree.insert(ip, mask, val, true)
+	}, func(ip net.IP, mask net.IPMask) error {
+		return tree.insert(ip, mask, val, true)
+	})
 }
 
 // DeleteWholeRangeCIDR removes all values associated with IPs
@@ -113,18 +137,11 @@ func (tree *tree[T]) DeleteWholeRangeCIDR(cidr string) error {
 }
 
 func (tree *tree[T]) DeleteWholeRangeCIDRb(cidr []byte) error {
-	if bytes.IndexByte(cidr, '.') > 0 {
-		ip, mask, err := parsecidr4(cidr)
-		if err != nil {
-			return err
-		}
+	return action(cidr, func(ip uint32, mask uint32) error {
 		return tree.delete32(ip, mask, true)
-	}
-	ip, mask, err := parsecidr6(cidr)
-	if err != nil {
-		return err
-	}
-	return tree.delete(ip, mask, true)
+	}, func(ip net.IP, mask net.IPMask) error {
+		return tree.delete(ip, mask, true)
+	})
 }
 
 // DeleteCIDR removes value associated with IP/mask from the tree.
@@ -133,18 +150,11 @@ func (tree *tree[T]) DeleteCIDR(cidr string) error {
 }
 
 func (tree *tree[T]) DeleteCIDRb(cidr []byte) error {
-	if bytes.IndexByte(cidr, '.') > 0 {
-		ip, mask, err := parsecidr4(cidr)
-		if err != nil {
-			return err
-		}
+	return action(cidr, func(ip uint32, mask uint32) error {
 		return tree.delete32(ip, mask, false)
-	}
-	ip, mask, err := parsecidr6(cidr)
-	if err != nil {
-		return err
-	}
-	return tree.delete(ip, mask, false)
+	}, func(ip net.IP, mask net.IPMask) error {
+		return tree.delete(ip, mask, false)
+	})
 }
 
 // Find CIDR traverses tree to proper Node and returns previously saved information in longest covered IP.
@@ -153,18 +163,11 @@ func (tree *tree[T]) FindCIDR(cidr string) (T, error) {
 }
 
 func (tree *tree[T]) FindCIDRb(cidr []byte) (T, error) {
-	if bytes.IndexByte(cidr, '.') > 0 {
-		ip, mask, err := parsecidr4(cidr)
-		if err != nil {
-			return zero[T](), err
-		}
+	return actionWithValue(cidr, func(ip uint32, mask uint32) (T, error) {
 		return tree.find32(ip, mask), nil
-	}
-	ip, mask, err := parsecidr6(cidr)
-	if err != nil || ip == nil {
-		return zero[T](), err
-	}
-	return tree.find(ip, mask)
+	}, func(ip net.IP, mask net.IPMask) (T, error) {
+		return tree.find(ip, mask)
+	})
 }
 
 func (tree *tree[T]) insert32(key, mask uint32, value T, overwrite bool) error {
@@ -191,7 +194,7 @@ func (tree *tree[T]) insert32(key, mask uint32, value T, overwrite bool) error {
 		return nil
 	}
 	for bit&mask != 0 {
-		next = tree.newnode()
+		next = tree.newNode()
 		next.parent = node
 		if key&bit != 0 {
 			node.right = next
@@ -244,7 +247,7 @@ func (tree *tree[T]) insert(key net.IP, mask net.IPMask, value T, overwrite bool
 	}
 
 	for bit&mask[i] != 0 {
-		next = tree.newnode()
+		next = tree.newNode()
 		next.parent = node
 		if key[i]&bit != 0 {
 			node.right = next
@@ -425,7 +428,7 @@ func (tree *tree[T]) find(key net.IP, mask net.IPMask) (value T, err error) {
 	return value, nil
 }
 
-func (tree *tree[T]) newnode() (p *node[T]) {
+func (tree *tree[T]) newNode() (p *node[T]) {
 	if tree.free != nil {
 		p = tree.free
 		tree.free = tree.free.right
@@ -449,75 +452,47 @@ func (tree *tree[T]) newnode() (p *node[T]) {
 	return &(tree.alloc[ln])
 }
 
-func loadip4(ipstr []byte) (uint32, error) {
-	var (
-		ip  uint32
-		oct uint32
-		b   byte
-		num byte
-	)
+// parseCIDR converts a string address or network prefix to a prefix in memory represented by a net.IP and net.IPMask.
+// Parsed IPs will be returned as single-address prefixes. It is also notable that all IPv4-mapped IPv6 addresses and
+// prefixes will be converted to their IPv4 counterparts to prevent multiple distinct instances of a single key from
+// being created. In the event that parsing can not be completed, a non-nil error will be returned instead.
+func parseCIDR(cidr []byte) (net.IP, net.IPMask, error) {
+	var address netip.Addr
+	var prefixLength int
 
-	for _, b = range ipstr {
-		switch {
-		case b == '.':
-			num++
-			if 0xffffffff-ip < oct {
-				return 0, ErrBadIP
-			}
-			ip = ip<<8 + oct
-			oct = 0
-		case b >= '0' && b <= '9':
-			oct = oct*10 + uint32(b-'0')
-			if oct > 255 {
-				return 0, ErrBadIP
-			}
-		default:
-			return 0, ErrBadIP
-		}
-	}
-	if num != 3 {
-		return 0, ErrBadIP
-	}
-	if 0xffffffff-ip < oct {
-		return 0, ErrBadIP
-	}
-	return ip<<8 + oct, nil
-}
+	// Check for '/' to determine if this is a single IP or prefix. This is the same approach used by net.ParseCIDR
+	if bytes.IndexByte(cidr, '/') < 0 {
+		// netip.ParseAddr is used instead of net.ParseIP since net.ParseIP reads all IPv4 addresses as IPv4-mapped IPv6
+		// addresses and the net package lacks the functionality to convert them back
+		addr, err := netip.ParseAddr(string(cidr))
 
-func parsecidr4(cidr []byte) (uint32, uint32, error) {
-	var mask uint32
-	p := bytes.IndexByte(cidr, '/')
-	if p > 0 {
-		for _, c := range cidr[p+1:] {
-			if c < '0' || c > '9' {
-				return 0, 0, ErrBadIP
-			}
-			mask = mask*10 + uint32(c-'0')
-		}
-		mask = 0xffffffff << (32 - mask)
-		cidr = cidr[:p]
-	} else {
-		mask = 0xffffffff
-	}
-	ip, err := loadip4(cidr)
-	if err != nil {
-		return 0, 0, err
-	}
-	return ip, mask, nil
-}
-
-func parsecidr6(cidr []byte) (net.IP, net.IPMask, error) {
-	p := bytes.IndexByte(cidr, '/')
-	if p > 0 {
-		_, ipm, err := net.ParseCIDR(string(cidr))
 		if err != nil {
 			return nil, nil, err
 		}
-		return ipm.IP, ipm.Mask, nil
+
+		address = addr
+		prefixLength = address.BitLen()
+	} else {
+		prefix, err := netip.ParsePrefix(string(cidr))
+
+		if err != nil {
+			return nil, nil, err
+		}
+
+		address = prefix.Addr()
+		prefixLength = prefix.Bits()
 	}
-	ip := net.ParseIP(string(cidr))
-	if ip == nil {
-		return nil, nil, ErrBadIP
+
+	// Check for IPv4-mapped IPv6 addresses and convert them to IPv4 by dropping the first 12 bytes of the IPv6 prefix
+	// Ex: ::ffff:1.2.3.4/112 -> 1.2.3.4/16
+	if address.Is4In6() {
+		address = address.Unmap()
+		prefixLength -= 8 * (net.IPv6len - net.IPv4len)
+
+		if prefixLength < 0 {
+			return nil, nil, ErrBadIP
+		}
 	}
-	return ip, net.IPMask{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, nil
+
+	return address.AsSlice(), net.CIDRMask(prefixLength, address.BitLen()), nil
 }
