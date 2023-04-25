@@ -20,60 +20,60 @@ func TestTree(t *testing.T) {
 	}
 
 	// Matching defined cidr
-	inf, err := tr.FindCIDR("1.2.3.1/25")
+	inf, ok, err := tr.FindCIDR("1.2.3.1/25")
 	if err != nil {
 		t.Error(err)
 	}
-	if inf != 1 {
+	if inf != 1 && !ok {
 		t.Errorf("Wrong value, expected 1, got %v", inf)
 	}
 
 	// Inside defined cidr
-	inf, err = tr.FindCIDR("1.2.3.60/32")
+	inf, ok, err = tr.FindCIDR("1.2.3.60/32")
 	if err != nil {
 		t.Error(err)
 	}
-	if inf != 1 {
+	if inf != 1 && !ok {
 		t.Errorf("Wrong value, expected 1, got %v", inf)
 	}
-	inf, err = tr.FindCIDR("1.2.3.60")
+	inf, ok, err = tr.FindCIDR("1.2.3.60")
 	if err != nil {
 		t.Error(err)
 	}
-	if inf != 1 {
+	if inf != 1 && !ok {
 		t.Errorf("Wrong value, expected 1, got %v", inf)
 	}
 
 	// Outside defined cidr
-	inf, err = tr.FindCIDR("1.2.3.160/32")
+	inf, ok, err = tr.FindCIDR("1.2.3.160/32")
 	if err != nil {
 		t.Error(err)
 	}
-	if inf != zero[int]() {
+	if ok {
 		t.Errorf("Wrong value, expected nil, got %v", inf)
 	}
-	inf, err = tr.FindCIDR("1.2.3.160")
+	inf, ok, err = tr.FindCIDR("1.2.3.160")
 	if err != nil {
 		t.Error(err)
 	}
-	if inf != zero[int]() {
+	if ok {
 		t.Errorf("Wrong value, expected nil, got %v", inf)
 	}
 
-	inf, err = tr.FindCIDR("1.2.3.128/25")
+	inf, ok, err = tr.FindCIDR("1.2.3.128/25")
 	if err != nil {
 		t.Error(err)
 	}
-	if inf != zero[int]() {
+	if ok {
 		t.Errorf("Wrong value, expected nil, got %v", inf)
 	}
 
 	// Covering not defined
-	inf, err = tr.FindCIDR("1.2.3.0/24")
+	inf, ok, err = tr.FindCIDR("1.2.3.0/24")
 	if err != nil {
 		t.Error(err)
 	}
-	if inf != zero[int]() {
+	if inf != zero[int]() && ok {
 		t.Errorf("Wrong value, expected nil, got %v", inf)
 	}
 
@@ -82,28 +82,28 @@ func TestTree(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	inf, err = tr.FindCIDR("1.2.3.0/24")
+	inf, ok, err = tr.FindCIDR("1.2.3.0/24")
 	if err != nil {
 		t.Error(err)
 	}
-	if inf != 2 {
+	if inf != 2 && !ok {
 		t.Errorf("Wrong value, expected 2, got %v", inf)
 	}
 
-	inf, err = tr.FindCIDR("1.2.3.160/32")
+	inf, ok, err = tr.FindCIDR("1.2.3.160/32")
 	if err != nil {
 		t.Error(err)
 	}
-	if inf != 2 {
+	if inf != 2 && !ok {
 		t.Errorf("Wrong value, expected 2, got %v", inf)
 	}
 
 	// Hit both covering and internal, should choose most specific
-	inf, err = tr.FindCIDR("1.2.3.0/32")
+	inf, ok, err = tr.FindCIDR("1.2.3.0/32")
 	if err != nil {
 		t.Error(err)
 	}
-	if inf != 1 {
+	if inf != 1 && !ok {
 		t.Errorf("Wrong value, expected 1, got %v", inf)
 	}
 
@@ -114,11 +114,11 @@ func TestTree(t *testing.T) {
 	}
 
 	// Hit covering with old IP
-	inf, err = tr.FindCIDR("1.2.3.0/32")
+	inf, ok, err = tr.FindCIDR("1.2.3.0/32")
 	if err != nil {
 		t.Error(err)
 	}
-	if inf != 2 {
+	if inf != 2 && !ok {
 		t.Errorf("Wrong value, expected 2, got %v", inf)
 	}
 
@@ -135,20 +135,20 @@ func TestTree(t *testing.T) {
 	}
 
 	// Hit with old IP
-	inf, err = tr.FindCIDR("1.2.3.0/32")
+	inf, ok, err = tr.FindCIDR("1.2.3.0/32")
 	if err != nil {
 		t.Error(err)
 	}
-	if inf != 1 {
+	if inf != 1 && !ok {
 		t.Errorf("Wrong value, expected 1, got %v", inf)
 	}
 
 	// Find covering again
-	inf, err = tr.FindCIDR("1.2.3.0/24")
+	inf, ok, err = tr.FindCIDR("1.2.3.0/24")
 	if err != nil {
 		t.Error(err)
 	}
-	if inf != zero[int]() {
+	if ok {
 		t.Errorf("Wrong value, expected nil, got %v", inf)
 	}
 
@@ -157,11 +157,11 @@ func TestTree(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	inf, err = tr.FindCIDR("1.2.3.0/24")
+	inf, ok, err = tr.FindCIDR("1.2.3.0/24")
 	if err != nil {
 		t.Error(err)
 	}
-	if inf != 2 {
+	if inf != 2 && !ok {
 		t.Errorf("Wrong value, expected 2, got %v", inf)
 	}
 
@@ -171,19 +171,19 @@ func TestTree(t *testing.T) {
 		t.Error(err)
 	}
 	// should be no value for covering
-	inf, err = tr.FindCIDR("1.2.3.0/24")
+	inf, ok, err = tr.FindCIDR("1.2.3.0/24")
 	if err != nil {
 		t.Error(err)
 	}
-	if inf != zero[int]() {
+	if ok {
 		t.Errorf("Wrong value, expected nil, got %v", inf)
 	}
 	// should be no value for internal
-	inf, err = tr.FindCIDR("1.2.3.0/32")
+	inf, ok, err = tr.FindCIDR("1.2.3.0/32")
 	if err != nil {
 		t.Error(err)
 	}
-	if inf != zero[int]() {
+	if ok {
 		t.Errorf("Wrong value, expected nil, got %v", inf)
 	}
 }
@@ -195,27 +195,27 @@ func TestSet(t *testing.T) {
 	}
 
 	tr.AddCIDR("1.1.1.0/24", 1)
-	inf, err := tr.FindCIDR("1.1.1.0")
+	inf, ok, err := tr.FindCIDR("1.1.1.0")
 	if err != nil {
 		t.Error(err)
 	}
-	if inf != 1 {
+	if inf != 1 && !ok {
 		t.Errorf("Wrong value, expected 1, got %v", inf)
 	}
 
 	tr.AddCIDR("1.1.1.0/25", 2)
-	inf, err = tr.FindCIDR("1.1.1.0")
+	inf, ok, err = tr.FindCIDR("1.1.1.0")
 	if err != nil {
 		t.Error(err)
 	}
-	if inf != 2 {
+	if inf != 2 && !ok {
 		t.Errorf("Wrong value, expected 2, got %v", inf)
 	}
-	inf, err = tr.FindCIDR("1.1.1.0/24")
+	inf, ok, err = tr.FindCIDR("1.1.1.0/24")
 	if err != nil {
 		t.Error(err)
 	}
-	if inf != 1 {
+	if inf != 1 && !ok {
 		t.Errorf("Wrong value, expected 1, got %v", inf)
 	}
 
@@ -230,18 +230,18 @@ func TestSet(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	inf, err = tr.FindCIDR("1.1.1.0")
+	inf, ok, err = tr.FindCIDR("1.1.1.0")
 	if err != nil {
 		t.Error(err)
 	}
-	if inf != 2 {
+	if inf != 2 && !ok {
 		t.Errorf("Wrong value, expected 2, got %v", inf)
 	}
-	inf, err = tr.FindCIDR("1.1.1.0/24")
+	inf, ok, err = tr.FindCIDR("1.1.1.0/24")
 	if err != nil {
 		t.Error(err)
 	}
-	if inf != 3 {
+	if inf != 3 && !ok {
 		t.Errorf("Wrong value, expected 3, got %v", inf)
 	}
 
@@ -250,18 +250,18 @@ func TestSet(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	inf, err = tr.FindCIDR("1.1.1.0")
+	inf, ok, err = tr.FindCIDR("1.1.1.0")
 	if err != nil {
 		t.Error(err)
 	}
-	if inf != 4 {
+	if inf != 4 && !ok {
 		t.Errorf("Wrong value, expected 4, got %v", inf)
 	}
-	inf, err = tr.FindCIDR("1.1.1.0/24")
+	inf, ok, err = tr.FindCIDR("1.1.1.0/24")
 	if err != nil {
 		t.Error(err)
 	}
-	if inf != 3 {
+	if inf != 3 && !ok {
 		t.Errorf("Wrong value, expected 3, got %v", inf)
 	}
 }
@@ -278,10 +278,10 @@ func TestRegression(t *testing.T) {
 	tr.AddCIDR("1.1.1.0/25", 2)
 
 	// inside old range, outside new range
-	inf, err := tr.FindCIDR("1.1.1.128")
+	inf, ok, err := tr.FindCIDR("1.1.1.128")
 	if err != nil {
 		t.Error(err)
-	} else if inf != zero[int]() {
+	} else if ok {
 		t.Errorf("Wrong value, expected nil, got %v", inf)
 	}
 }
@@ -297,20 +297,20 @@ func TestTree6(t *testing.T) {
 	}
 
 	// Matching defined cidr
-	inf, err := tr.FindCIDR("dead::beef")
+	inf, ok, err := tr.FindCIDR("dead::beef")
 	if err != nil {
 		t.Error(err)
 	}
-	if inf != 3 {
+	if inf != 3 && !ok {
 		t.Errorf("Wrong value, expected 3, got %v", inf)
 	}
 
 	// Outside
-	inf, err = tr.FindCIDR("deed::beef/32")
+	inf, ok, err = tr.FindCIDR("deed::beef/32")
 	if err != nil {
 		t.Error(err)
 	}
-	if inf != zero[int]() {
+	if ok {
 		t.Errorf("Wrong value, expected nil, got %v", inf)
 	}
 
@@ -321,20 +321,20 @@ func TestTree6(t *testing.T) {
 	}
 
 	// Match defined subnet
-	inf, err = tr.FindCIDR("dead:beef::0a5c:0/64")
+	inf, ok, err = tr.FindCIDR("dead:beef::0a5c:0/64")
 	if err != nil {
 		t.Error(err)
 	}
-	if inf != 4 {
+	if inf != 4 && !ok {
 		t.Errorf("Wrong value, expected 4, got %v", inf)
 	}
 
 	// Match outside defined subnet
-	inf, err = tr.FindCIDR("dead:0::beef:0a5c:0/64")
+	inf, ok, err = tr.FindCIDR("dead:0::beef:0a5c:0/64")
 	if err != nil {
 		t.Error(err)
 	}
-	if inf != 3 {
+	if inf != 3 && !ok {
 		t.Errorf("Wrong value, expected 3, got %v", inf)
 	}
 
@@ -349,10 +349,10 @@ func TestRegression6(t *testing.T) {
 	tr.AddCIDR("2620:10f::/32", 54321)
 	tr.AddCIDR("2620:10f:d000:100::5/128", 12345)
 
-	inf, err := tr.FindCIDR("2620:10f:d000:100::5/128")
+	inf, ok, err := tr.FindCIDR("2620:10f:d000:100::5/128")
 	if err != nil {
 		t.Errorf("Could not get /128 address from the tree, error: %s", err)
-	} else if inf != 12345 {
+	} else if inf != 12345 && !ok {
 		t.Errorf("Wrong value from /128 test, got %d, expected 12345", inf)
 	}
 }
@@ -364,24 +364,24 @@ func TestSingleIpv4MappedIpv6(t *testing.T) {
 		t.Error("Could not add IPv4-mapped IPv6 address:", err)
 	}
 
-	inf, err := tr.FindCIDR("::ffff:1.2.3.4")
+	inf, ok, err := tr.FindCIDR("::ffff:1.2.3.4")
 	if err != nil {
 		t.Error("Could not find IPv4-mapped IPv6 address (::ffff:1.2.3.4), error:", err)
-	} else if inf == zero[int]() || inf != 1 {
+	} else if !ok || inf != 1 {
 		t.Error("Found wrong value for IPv4-mapped IPv6 address (::ffff:1.2.3.4):", inf)
 	}
 
-	inf, err = tr.FindCIDR("::ffff:0102:0304")
+	inf, ok, err = tr.FindCIDR("::ffff:0102:0304")
 	if err != nil {
 		t.Error("Could not find IPv4-mapped IPv6 address (::ffff:0102:0304), error:", err)
-	} else if inf == zero[int]() || inf != 1 {
+	} else if !ok || inf != 1 {
 		t.Error("Found wrong value for IPv4-mapped IPv6 address (:::ffff:0102:0304):", inf)
 	}
 
-	inf, err = tr.FindCIDR("1.2.3.4")
+	inf, ok, err = tr.FindCIDR("1.2.3.4")
 	if err != nil {
 		t.Error("Could not find unmapped IPv4-mapped address (1.2.3.4), error:", err)
-	} else if inf == zero[int]() || inf != 1 {
+	} else if !ok || inf != 1 {
 		t.Error("Found wrong value for unmapped IPv4-mapped address (1.2.3.4):", inf)
 	}
 }
@@ -393,17 +393,17 @@ func TestIpv4MappedIpv6Prefix(t *testing.T) {
 		t.Error("Could not add IPv4-mapped IPv6 prefix:", err)
 	}
 
-	inf, err := tr.FindCIDR("1.2.3.4")
+	inf, ok, err := tr.FindCIDR("1.2.3.4")
 	if err != nil {
 		t.Error("Could not find unmapped IPv4-mapped address (1.2.3.4), error:", err)
-	} else if inf == zero[int]() || inf != 1 {
+	} else if !ok || inf != 1 {
 		t.Error("Found wrong value for unmapped IPv4-mapped address (1.2.3.4):", inf)
 	}
 
-	inf, err = tr.FindCIDR("1.3.0.0")
+	inf, ok, err = tr.FindCIDR("1.3.0.0")
 	if err != nil {
 		t.Error("Could not find unmapped IPv4-mapped address (1.3.0.0), error:", err)
-	} else if inf != zero[int]() {
+	} else if ok {
 		t.Error("Found wrong value for unmapped IPv4-mapped address (1.3.0.0):", inf)
 	}
 }

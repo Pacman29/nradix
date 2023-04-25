@@ -9,6 +9,6 @@ type Tree[T comparable] interface {
 	DeleteWholeRangeCIDRb(cidr []byte) error
 	DeleteCIDR(cidr string) error
 	DeleteCIDRb(cidr []byte) error
-	FindCIDR(cidr string) (T, error)
-	FindCIDRb(cidr []byte) (T, error)
+	FindCIDR(cidr string) (T, bool, error)
+	FindCIDRb(cidr []byte) (T, bool, error)
 }

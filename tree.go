@@ -86,14 +86,14 @@ func action(
 	return call(ip, mask)
 }
 
-func actionWithValue[T comparable](
+func actionWithValueAndOk[T comparable](
 	cidr []byte,
-	call32 func(ip uint32, mask uint32) (T, error),
-	call func(ip net.IP, mask net.IPMask) (T, error)) (T, error) {
+	call32 func(ip uint32, mask uint32) (T, bool, error),
+	call func(ip net.IP, mask net.IPMask) (T, bool, error)) (T, bool, error) {
 
 	ip, mask, err := parseCIDR(cidr)
 	if err != nil {
-		return zero[T](), err
+		return zero[T](), false, err
 	}
 
 	if len(ip) == net.IPv4len {
@@ -158,14 +158,14 @@ func (tree *tree[T]) DeleteCIDRb(cidr []byte) error {
 }
 
 // Find CIDR traverses tree to proper Node and returns previously saved information in longest covered IP.
-func (tree *tree[T]) FindCIDR(cidr string) (T, error) {
+func (tree *tree[T]) FindCIDR(cidr string) (T, bool, error) {
 	return tree.FindCIDRb([]byte(cidr))
 }
 
-func (tree *tree[T]) FindCIDRb(cidr []byte) (T, error) {
-	return actionWithValue(cidr, func(ip uint32, mask uint32) (T, error) {
-		return tree.find32(ip, mask), nil
-	}, func(ip net.IP, mask net.IPMask) (T, error) {
+func (tree *tree[T]) FindCIDRb(cidr []byte) (T, bool, error) {
+	return actionWithValueAndOk(cidr, func(ip uint32, mask uint32) (T, bool, error) {
+		return tree.find32(ip, mask)
+	}, func(ip net.IP, mask net.IPMask) (T, bool, error) {
 		return tree.find(ip, mask)
 	})
 }
@@ -374,11 +374,13 @@ func (tree *tree[T]) delete(key net.IP, mask net.IPMask, wholeRange bool) error 
 	return nil
 }
 
-func (tree *tree[T]) find32(key, mask uint32) (value T) {
+func (tree *tree[T]) find32(key, mask uint32) (value T, ok bool, err error) {
+	ok = false
 	bit := startbit
 	node := tree.root
 	for node != nil {
 		if node.value != zero[T]() {
+			ok = true
 			value = node.value
 		}
 		if key&bit != 0 {
@@ -392,18 +394,20 @@ func (tree *tree[T]) find32(key, mask uint32) (value T) {
 		bit >>= 1
 
 	}
-	return value
+	return value, ok, nil
 }
 
-func (tree *tree[T]) find(key net.IP, mask net.IPMask) (value T, err error) {
+func (tree *tree[T]) find(key net.IP, mask net.IPMask) (value T, ok bool, err error) {
+	ok = false
 	if len(key) != len(mask) {
-		return zero[T](), ErrBadIP
+		return zero[T](), ok, ErrBadIP
 	}
 	var i int
 	bit := startbyte
 	node := tree.root
 	for node != nil {
 		if node.value != zero[T]() {
+			ok = true
 			value = node.value
 		}
 		if key[i]&bit != 0 {
@@ -419,13 +423,14 @@ func (tree *tree[T]) find(key net.IP, mask net.IPMask) (value T, err error) {
 			if i >= len(key) {
 				// reached depth of the tree, there should be matching node...
 				if node != nil {
+					ok = true
 					value = node.value
 				}
 				break
 			}
 		}
 	}
-	return value, nil
+	return value, ok, nil
 }
 
 func (tree *tree[T]) newNode() (p *node[T]) {
